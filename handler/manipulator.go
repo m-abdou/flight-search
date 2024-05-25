@@ -17,7 +17,7 @@ func Manipulate() map[string][]Model.Flight {
 
 	var totalResult []Model.Flight
 
-	var resultCan = make(chan []Model.Flight)
+	var resultCan = make(chan []Model.Flight, len(entries))
 
 	var dataFilter = map[string][]Model.Flight{}
 
@@ -25,28 +25,18 @@ func Manipulate() map[string][]Model.Flight {
 
 	for _, e := range entries {
 		wgMain.Add(1)
-
-		go func(location string, name string, result chan<- []Model.Flight) {
-			defer wgMain.Done()
-			//data := ProcessFile(location, name)
-			//result <- nil
-		}(csvLocation, e.Name(), resultCan)
-		//go process(&wg, csvLocation, e.Name(), resultCan)
+		go process(&wgMain, csvLocation, e.Name(), resultCan)
 	}
 
 	wgMain.Wait()
+	close(resultCan)
 
-	for flightData := range resultCan {
-		totalResult = append(totalResult, flightData...)
+	for result := range resultCan {
+		totalResult = append(totalResult, result...)
+		fmt.Println("total now ==>", len(totalResult))
 	}
 
-	//go func(result <-chan []Model.Flight) {
-	//	for flightData := range resultCan {
-	//		totalResult = append(totalResult, flightData...)
-	//	}
-	//
-	//	close(resultCan)
-	//}(resultCan)
+	fmt.Println("==== finished =======")
 
 	dataFilter["data"] = totalResult
 	for _, flight := range totalResult {
